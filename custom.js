@@ -5,6 +5,12 @@ var through = require('through')
 
 var processEnvPattern = /\bprocess\.env\b/
 
+module.exports.transform = function transform(source) {
+  if (processEnvPattern.test(source)) {
+    return jstransform.transform(createVisitors(env), source).code
+  }
+}
+
 module.exports = function(rootEnv) {
   rootEnv = rootEnv || process.env || {}
 
@@ -25,12 +31,10 @@ module.exports = function(rootEnv) {
     function flush() {
       var source = buffer.join('')
 
-      if (processEnvPattern.test(source)) {
-        try {
-          source = jstransform.transform(createVisitors(env), source).code
-        } catch(err) {
-          return this.emit('error', err)
-        }
+      try {
+          source = transform(source);
+      } catch(err) {
+        return this.emit('error', err)
       }
 
       this.queue(source)
